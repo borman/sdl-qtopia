@@ -1,0 +1,7 @@
+# VIM backup files
+*~
+
+# autoconf traces
+configure
+aclocal.m4
+autom4te.cache
