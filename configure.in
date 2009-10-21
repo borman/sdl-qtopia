@@ -1585,7 +1585,7 @@ AC_HELP_STRING([--enable-video-qtopia4], [use qtopia4 video driver [[default=no]
         video_qtopia4=no
         _qi=-I${qtopia4_sdk}/include
         _qti=-I${qtopia4_sdk}/qtopiacore/target/include
-        QTOPIA4_FLAGS="-DQWS $_qi $_qi/qtopiabase $_qi/qtopia $_qti/QtGui $_qti/Qt $_qti/QtCore  $_qti "
+        QTOPIA4_FLAGS="-fno-rtti -fno-exceptions -DQWS $_qi $_qi/qtopiabase $_qi/qtopia $_qti/QtGui $_qti/Qt $_qti/QtCore  $_qti "
         AC_LANG_CPLUSPLUS
         OLD_CXX="$CXXFLAGS"
         CXXFLAGS="$QTOPIA4_FLAGS"
@@ -1601,9 +1601,9 @@ AC_HELP_STRING([--enable-video-qtopia4], [use qtopia4 video driver [[default=no]
             AC_DEFINE(SDL_VIDEO_DRIVER_QTOPIA4)
             SOURCES="$SOURCES $srcdir/src/video/qtopia4/*.cc"
             SDLMAIN_SOURCES="$srcdir/src/main/qtopia4/*.cc"
-            EXTRA_CFLAGS="$EXTRA_CFLAGS $QTOPIA4_FLAGS -I"
+            EXTRA_CFLAGS="$EXTRA_CFLAGS $QTOPIA4_FLAGS"
             SDL_CFLAGS="$SDL_CFLAGS -DQWS -Dmain=SDL_main"
-            SDL_LIBS="-lSDLmain $SDL_LIBS -lQtGui -lQtNetwork -lqtopia -lqtopiabase"
+            SDL_LIBS="-lSDLmain $SDL_LIBS -L$qtopia4_sdk/lib -L$qtopia4_sdk/qtopiacore/target/lib -lQtGui -lQtNetwork -lqtopia -lqtopiabase"
             have_video=yes
         fi
         AC_LANG_C
