@@ -148,7 +148,7 @@ Uint32 FastestFlags(Uint32 flags, int width, int height, int bpp)
 	return(flags);
 }
 
-int main(int argc, char *argv[])
+int SDL_main(int argc, char *argv[])
 {
 	SDL_Surface *screen;
 	Uint8 *mem;
@@ -168,9 +168,9 @@ int main(int argc, char *argv[])
 
 	numsprites = NUM_SPRITES;
 	videoflags = SDL_SWSURFACE|SDL_ANYFORMAT;
-	width = 640;
-	height = 480;
-	video_bpp = 8;
+	width = 240;
+	height = 320;
+	video_bpp = 18;
 	debug_flip = 0;
 	while ( argc > 1 ) {
 		--argc;
@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
 		dst.w = sprite->w;
 		dst.h = sprite->h;
 		SDL_BlitSurface(sprite, NULL, screen, &dst);
-		SDL_FillRect(screen, &dst, background);
+    SDL_FillRect(screen, &dst, background);
 	}
 	if ( (sprite->flags & SDL_HWACCEL) == SDL_HWACCEL ) {
 		printf("Sprite blit uses hardware acceleration\n");
@@ -296,9 +296,11 @@ int main(int argc, char *argv[])
 		while ( SDL_PollEvent(&event) ) {
 			switch (event.type) {
 				case SDL_MOUSEBUTTONDOWN:
+          printf("mouse: %d %d\n", event.button.x, event.button.y);
 					SDL_WarpMouse(screen->w/2, screen->h/2);
 					break;
 				case SDL_KEYDOWN:
+          printf("key\n");
 					/* Any keypress quits the app... */
 				case SDL_QUIT:
 					done = 1;

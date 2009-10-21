@@ -1539,6 +1539,73 @@ AC_HELP_STRING([--enable-video-qtopia], [use Qtopia video driver [[default=no]]]
     fi
 }
 
+dnl Set up the MotoEzX video driver if enabled
+CheckMotoEzX()
+{
+    AC_ARG_ENABLE(video-motoezx,
+AC_HELP_STRING([--enable-video-motoezx], [use Moto/EzX video driver [[default=no]]]),
+                  , enable_video_motoezx=no)
+    if test x$enable_video = xyes -a x$enable_video_motoezx = xyes; then
+        AC_MSG_CHECKING(for Moto/EzX support)
+        video_motoezx=no
+        MOTOEZX_FLAGS="-nostdinc -I${ARM_DEV_DIR}/arm-linux/sys-include -I${ARM_DEV_DIR}/arm-linux/include -I${ARM_DEV_DIR}/lib/gcc-lib/arm-linux/3.3.6/include -DQWS -I${QTDIR}/include/ -I${QTDIR}/include/ezx -DNO_DEBUG -fno-rtti -fno-exceptions"
+        AC_LANG_CPLUSPLUS
+        OLD_CXX="$CXXFLAGS"
+        CXXFLAGS="$MOTOEZX_FLAGS"
+        AC_TRY_COMPILE([
+         #include <zapplication.h>
+        ],[
+        ],[
+        video_motoezx=yes
+        ])
+        CXXFLAGS="$OLD_CXX"
+        AC_MSG_RESULT($video_motoezx)
+        if test x$video_motoezx = xyes; then
+            AC_DEFINE(SDL_VIDEO_DRIVER_MOTOEZX)
+            SOURCES="$SOURCES $srcdir/src/video/motoezx/*.cc"
+            SDLMAIN_SOURCES="$srcdir/src/main/motoezx/*.cc"
+            EXTRA_CFLAGS="$EXTRA_CFLAGS $MOTOEZX_FLAGS"
+            SDL_CFLAGS="$SDL_CFLAGS -DQWS -Dmain=SDL_main"
+            SDL_LIBS="-lSDLmain $SDL_LIBS -L${EZXDIR}/lib -Wl,-rpath-link,${QTDIR}/lib,-rpath-link,${QTDIR}/lib/ezx/lib,-rpath-link,${QTDIR}/lib/ezx/lib/inputmethods -L${QTDIR}/lib/ -L${QTDIR}/lib/ezx/lib -ldl -lutil -lqte-mt -lpthread -lezxappbase -lezxappsdk -lezxopenwindow -lipp-miscGen -lipp-jp -lezxjpeg -lezxpm"
+            have_video=yes
+        fi
+        AC_LANG_C
+    fi
+}
+
+CheckQtopia4() {
+    AC_ARG_ENABLE(video-qtopia4,
+AC_HELP_STRING([--enable-video-qtopia4], [use qtopia4 video driver [[default=no]]]),
+                  , enable_video_qtopia4=no)
+    if test x$enable_video = xyes -a x$enable_video_qtopia4 = xyes; then
+        AC_MSG_CHECKING(for Qtopia4)
+        video_qtopia4=no
+        _qi=-I/opt/toolchains/arm-iwmmxt-linux-gnu/qtopia/include
+        _qti=-I/opt/toolchains/arm-iwmmxt-linux-gnu/qtopia/qtopiacore/target/include
+        QTOPIA4_FLAGS="-DQWS $_qi $_qi/qtopiabase $_qi/qtopia $_qti/QtGui $_qti/Qt $_qti/QtCore  $_qti "
+        AC_LANG_CPLUSPLUS
+        OLD_CXX="$CXXFLAGS"
+        CXXFLAGS="$QTOPIA4_FLAGS"
+        AC_TRY_COMPILE([
+         #include <qtopiaapplication.h>
+        ],[
+        ],[
+        video_qtopia4=yes
+        ])
+        CXXFLAGS="$OLD_CXX"
+        AC_MSG_RESULT($video_qtopia4)
+        if test x$video_qtopia4 = xyes; then
+            AC_DEFINE(SDL_VIDEO_DRIVER_QTOPIA4)
+            SOURCES="$SOURCES $srcdir/src/video/qtopia4/*.cc"
+            SDLMAIN_SOURCES="$srcdir/src/main/qtopia4/*.cc"
+            EXTRA_CFLAGS="$EXTRA_CFLAGS $QTOPIA4_FLAGS -I"
+            SDL_CFLAGS="$SDL_CFLAGS -DQWS -Dmain=SDL_main"
+            SDL_LIBS="-lSDLmain $SDL_LIBS -lQtGui -lQtNetwork -lqtopia -lqtopiabase"
+            have_video=yes
+        fi
+        AC_LANG_C
+    fi
+}
 dnl Set up the PicoGUI video driver if enabled
 CheckPicoGUI()
 {
@@ -2332,6 +2399,8 @@ case "$host" in
         CheckAAlib
         CheckCaca
         CheckQtopia
+        CheckQtopia4
+        CheckMotoEzX
         CheckPicoGUI
         CheckOpenGLX11
         CheckInputEvents

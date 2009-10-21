@@ -51,6 +51,12 @@ static VideoBootStrap *bootstrap[] = {
 #if SDL_VIDEO_DRIVER_QTOPIA
 	&Qtopia_bootstrap,
 #endif
+#if SDL_VIDEO_DRIVER_MOTOEZX
+  &EzX_bootstrap,
+#endif
+#if SDL_VIDEO_DRIVER_QTOPIA4
+        &Qtopia4_bootstrap,
+#endif
 #if SDL_VIDEO_DRIVER_WSCONS
 	&WSCONS_bootstrap,
 #endif
@@ -924,6 +930,7 @@ SDL_Surface * SDL_DisplayFormat (SDL_Surface *surface)
 		SDL_SetError("No video mode has been set");
 		return(NULL);
 	}
+
 	/* Set the flags appropriate for copying to display surface */
 	if (((SDL_PublicSurface->flags&SDL_HWSURFACE) == SDL_HWSURFACE) && current_video->info.blit_hw)
 		flags = SDL_HWSURFACE;

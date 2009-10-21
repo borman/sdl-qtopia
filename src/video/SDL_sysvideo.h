@@ -335,6 +335,12 @@ extern VideoBootStrap iPod_bootstrap;
 #if SDL_VIDEO_DRIVER_QTOPIA
 extern VideoBootStrap Qtopia_bootstrap;
 #endif
+#if SDL_VIDEO_DRIVER_MOTOEZX
+extern VideoBootStrap EzX_bootstrap;
+#endif
+#if SDL_VIDEO_DRIVER_QTOPIA4
+extern VideoBootStrap Qtopia4_bootstrap;
+#endif
 #if SDL_VIDEO_DRIVER_WSCONS
 extern VideoBootStrap WSCONS_bootstrap;
 #endif

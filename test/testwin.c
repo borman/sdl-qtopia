@@ -231,7 +231,7 @@ done:
 	return;
 }
 
-int main(int argc, char *argv[])
+int SDL_main(int argc, char *argv[])
 {
 	SDL_Surface *screen;
 	/* Options */
@@ -249,17 +249,17 @@ int main(int argc, char *argv[])
 	nofade = 0;
 	delay = 1;
 
-#ifdef _WIN32_WCE
+//#ifdef _WIN32_WCE
 	w = 240;
 	h = 320;
-	desired_bpp = 8;
+	desired_bpp = 18;
 	video_flags = SDL_FULLSCREEN;
-#else
-	w = 640;
-	h = 480;
-	desired_bpp = 0;
-	video_flags = 0;
-#endif
+  /*#else*/
+  /*w = 640;*/
+  /*h = 480;*/
+  /*desired_bpp = 0;*/
+  /*video_flags = 0;*/
+  /*#endif*/
 	if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
 		fprintf(stderr,
 			"Couldn't initialize SDL: %s\n", SDL_GetError());
