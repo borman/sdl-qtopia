@@ -38,25 +38,24 @@ extern "C" {
 #include "../../events/SDL_events_c.h"
 };
 
-typedef enum { 
-    SDL_QT_NO_ROTATION = 0, 
-    SDL_QT_ROTATION_90, 
-    SDL_QT_ROTATION_270 
+typedef enum {
+  SDL_QT_NO_ROTATION = 0,
+  SDL_QT_ROTATION_90,
+  SDL_QT_ROTATION_270
 } screenRotationT;
 
 extern screenRotationT screenRotation;
 
 class QCopChannel;
-class SDL_QWin : public QWidget
-{
- Q_OBJECT
- private:
+class SDL_QWin : public QWidget {
+  Q_OBJECT
+private:
   enum {
     EZX_LEFT_BUTTON = 1,
     EZX_RIGHT_BUTTON = 2
   };
   void QueueKey(QKeyEvent *e, int pressed);
- public:
+public:
   SDL_QWin(const QSize& size);
   virtual ~SDL_QWin();
   virtual bool shown(void) {
@@ -74,20 +73,25 @@ class SDL_QWin : public QWidget
     x = my_offset.x();
     y = my_offset.y();
   }
-  QImage *image(void) { return my_image; }
-  
-  const QPoint& mousePos() const { return my_mouse_pos; }
+  QImage *image(void) {
+    return my_image;
+  }
+
+  const QPoint& mousePos() const {
+    return my_mouse_pos;
+  }
   void setMousePos(const QPoint& newpos);
 
   void repaintRect(const QRect& rect);
-  bool isOK()
-  { return fbdev != -1 && vmem != (char *)-1; }
-  
- public slots:
-	void signalRaise();
+  bool isOK() {
+    return fbdev != -1 && vmem != (char *)-1;
+  }
+
+public slots:
+  void signalRaise();
   //void clickAppIcon();
-  
- protected:
+
+protected:
   /* Handle resizing of the window */
   virtual void resizeEvent(QResizeEvent *e);
 #ifdef MOTOEZX_TEST
@@ -100,13 +104,17 @@ class SDL_QWin : public QWidget
   void mousePressEvent(QMouseEvent *e);
   void mouseReleaseEvent(QMouseEvent *e);
   void paintEvent(QPaintEvent *ev);
-  void keyPressEvent(QKeyEvent *e)   { QueueKey(e, 1); }
-  void keyReleaseEvent(QKeyEvent *e) { QueueKey(e, 0); }
- private:
+  void keyPressEvent(QKeyEvent *e)   {
+    QueueKey(e, 1);
+  }
+  void keyReleaseEvent(QKeyEvent *e) {
+    QueueKey(e, 0);
+  }
+private:
   void init();
   void suspend();
   void resume();
-  
+
   int keyUp();
   int keyDown();
   int keyLeft();

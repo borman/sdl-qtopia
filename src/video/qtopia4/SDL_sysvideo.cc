@@ -1,24 +1,24 @@
 /*
-    SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+   SDL - Simple DirectMedia Layer
+   Copyright (C) 1997-2006 Sam Lantinga
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-    Sam Lantinga
-    slouken@libsdl.org
-*/
+   Sam Lantinga
+   slouken@libsdl.org
+   */
 #include "SDL_config.h"
 
 /* Moto/EzX based framebuffer implementation */
@@ -51,9 +51,9 @@ extern "C" {
   /* Name of the environment variable used to invert the screen rotation or not:
      Possible values:
      !=0 : Screen is 270° rotated
-     0: Screen is 90° rotated*/
+  0: Screen is 90° rotated*/
 #define SDL_QT_ROTATION_ENV_NAME "SDL_QT_INVERT_ROTATION"
-  
+
   /* Initialization/Query functions */
   static int QT_VideoInit(_THIS, SDL_PixelFormat *vformat);
   static SDL_Rect **QT_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags);
@@ -75,19 +75,16 @@ extern "C" {
 
   /* FB driver bootstrap functions */
 
-  static int QT_Available(void)
-  {
+  static int QT_Available(void) {
     return(1);
   }
 
-  static void QT_DeleteDevice(SDL_VideoDevice *device)
-  {
+  static void QT_DeleteDevice(SDL_VideoDevice *device) {
     SDL_free(device->hidden);
     SDL_free(device);
   }
 
-  static SDL_VideoDevice *QT_CreateDevice(int devindex)
-  {
+  static SDL_VideoDevice *QT_CreateDevice(int devindex) {
     SDL_VideoDevice *device;
 
     /* Initialize all variables that we clean on shutdown */
@@ -95,12 +92,12 @@ extern "C" {
     if ( device ) {
       SDL_memset(device, 0, (sizeof *device));
       device->hidden = (struct SDL_PrivateVideoData *)
-	SDL_malloc((sizeof *device->hidden));
+                       SDL_malloc((sizeof *device->hidden));
     }
     if ( (device == NULL) || (device->hidden == NULL) ) {
       SDL_OutOfMemory();
       if ( device ) {
-	SDL_free(device);
+        SDL_free(device);
       }
       return(0);
     }
@@ -140,7 +137,7 @@ extern "C" {
 
     /* Set the driver flags */
     device->handles_any_size = 0;
-	
+
     return device;
   }
 
@@ -150,26 +147,24 @@ extern "C" {
   };
 
   /* Function to sort the display_list */
-  static int CompareModes(const void *A, const void *B)
-  {
+  static int CompareModes(const void *A, const void *B) {
 #if 0
     const display_mode *a = (display_mode *)A;
     const display_mode *b = (display_mode *)B;
 
     if ( a->space == b->space ) {
       return((b->virtual_width*b->virtual_height)-
-	     (a->virtual_width*a->virtual_height));
+             (a->virtual_width*a->virtual_height));
     } else {
       return(ColorSpaceToBitsPerPixel(b->space)-
-	     ColorSpaceToBitsPerPixel(a->space));
+             ColorSpaceToBitsPerPixel(a->space));
     }
 #endif
     return 0;
   }
 
   /* Yes, this isn't the fastest it could be, but it works nicely */
-  static int QT_AddMode(_THIS, int index, unsigned int w, unsigned int h)
-  {
+  static int QT_AddMode(_THIS, int index, unsigned int w, unsigned int h) {
     SDL_Rect *mode;
     int i;
     int next_mode;
@@ -177,10 +172,10 @@ extern "C" {
     /* Check to see if we already have this mode */
     if ( SDL_nummodes[index] > 0 ) {
       for ( i=SDL_nummodes[index]-1; i >= 0; --i ) {
-	mode = SDL_modelist[index][i];
-	if ( (mode->w == w) && (mode->h == h) ) {
-	  return(0);
-	}
+        mode = SDL_modelist[index][i];
+        if ( (mode->w == w) && (mode->h == h) ) {
+          return(0);
+        }
       }
     }
 
@@ -201,7 +196,7 @@ extern "C" {
     /* Allocate the new list of modes, and fill in the new mode */
     next_mode = SDL_nummodes[index];
     SDL_modelist[index] = (SDL_Rect **)
-      SDL_realloc(SDL_modelist[index], (1+next_mode+1)*sizeof(SDL_Rect *));
+                          SDL_realloc(SDL_modelist[index], (1+next_mode+1)*sizeof(SDL_Rect *));
     if ( SDL_modelist[index] == NULL ) {
       SDL_OutOfMemory();
       SDL_nummodes[index] = 0;
@@ -216,8 +211,7 @@ extern "C" {
   }
 
   extern void SDL_HideSplash();
-  int QT_VideoInit(_THIS, SDL_PixelFormat *vformat)
-  {
+  int QT_VideoInit(_THIS, SDL_PixelFormat *vformat) {
     SDL_HideSplash();
     /* Initialize the EzX Application  */
     /* Determine the screen depth */
@@ -225,12 +219,12 @@ extern "C" {
 
     // For now we hardcode the current depth because anything else
     // might as well be emulated by SDL rather than by EzX.
-    
+
     QSize desktop_size(240, 320);// = qApp->desktop()->size();
     QT_AddMode(_this, ((vformat->BitsPerPixel+7)/8)-1,
-	       desktop_size.width(), desktop_size.height());
+               desktop_size.width(), desktop_size.height());
     QT_AddMode(_this, ((vformat->BitsPerPixel+7)/8)-1,
-	       desktop_size.height(), desktop_size.width());
+               desktop_size.height(), desktop_size.width());
 
     /* Determine the current screen size */
     _this->info.current_w = desktop_size.width();
@@ -238,7 +232,7 @@ extern "C" {
 
     /* Create the window / widget */
     SDL_Win = new SDL_QWin(QSize(QT_HIDDEN_SIZE, QT_HIDDEN_SIZE));
-    if(!SDL_Win->isOK()){
+    if (!SDL_Win->isOK()) {
       delete SDL_Win;
       SDL_Win = 0;
       return -1;
@@ -252,7 +246,7 @@ extern "C" {
 
     struct fb_var_screeninfo fbi;
     Uint32 r = 0, g = 0, b = 0, a = 0;
-        
+
     fbi.red.length = 5;
     fbi.red.offset = 11;
     fbi.green.length = 6;
@@ -263,22 +257,22 @@ extern "C" {
     fbi.transp.offset = 0;
 
     int i;
-    for(i = 0; i < fbi.red.length; i++){
+    for (i = 0; i < fbi.red.length; i++) {
       r <<= 1;
       r |= 1 << fbi.red.offset;
     }
 
-    for(i = 0; i < fbi.blue.length; i++){
+    for (i = 0; i < fbi.blue.length; i++) {
       b <<= 1;
       b |= 1 << fbi.blue.offset;
     }
 
-    for(i = 0; i < fbi.green.length; i++){
+    for (i = 0; i < fbi.green.length; i++) {
       g <<= 1;
       g |= 1 << fbi.green.offset;
     }
-    
-    for(i = 0; i < fbi.transp.length; i++){
+
+    for (i = 0; i < fbi.transp.length; i++) {
       a <<= 1;
       a |= 1 << fbi.transp.offset;
     }
@@ -287,12 +281,12 @@ extern "C" {
     vformat->Gmask = g;
     vformat->Bmask = b;
     vformat->Amask = a;
-    
+
     vformat->Rshift = fbi.red.offset;
     vformat->Gshift = fbi.green.offset;
     vformat->Bshift = fbi.blue.offset;
     vformat->Ashift = fbi.transp.offset;
-    
+
     vformat->Rloss = 8 - fbi.red.length;
     vformat->Gloss = 8 - fbi.green.length;
     vformat->Bloss = 8 - fbi.blue.length;
@@ -302,8 +296,7 @@ extern "C" {
   }
 
   /* We support any dimension at our bit-depth */
-  SDL_Rect **QT_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags)
-  {
+  SDL_Rect **QT_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags) {
     SDL_Rect **modes;
 
     modes = ((SDL_Rect **)0);
@@ -311,8 +304,8 @@ extern "C" {
       modes = SDL_modelist[((format->BitsPerPixel+7)/8)-1];
     } else {
       if ( format->BitsPerPixel ==
-	   _this->screen->format->BitsPerPixel ) {
-	modes = ((SDL_Rect **)-1);
+           _this->screen->format->BitsPerPixel ) {
+        modes = ((SDL_Rect **)-1);
       }
     }
     return(modes);
@@ -321,31 +314,28 @@ extern "C" {
   /* Various screen update functions available */
   static void QT_NormalUpdate(_THIS, int numrects, SDL_Rect *rects);
 
-  static int QT_SetFullScreen(_THIS, SDL_Surface *screen, int fullscreen)
-  {
+  static int QT_SetFullScreen(_THIS, SDL_Surface *screen, int fullscreen) {
     return -1;
   }
 
-  static int QT_ToggleFullScreen(_THIS, int fullscreen)
-  {
+  static int QT_ToggleFullScreen(_THIS, int fullscreen) {
     return -1;
   }
 
   /* FIXME: check return values and cleanup here */
   SDL_Surface *QT_SetVideoMode(_THIS, SDL_Surface *current,
-			       int width, int height, int bpp, Uint32 flags)
-  {
+                               int width, int height, int bpp, Uint32 flags) {
     QImage *qimage;
     QSize desktop_size(240, 320);// = qApp->desktop()->size();
 
     current->flags = 0; //SDL_FULLSCREEN; // We always run fullscreen.
 
-    if(width <= desktop_size.width()
-	      && height <= desktop_size.height()) {
+    if (width <= desktop_size.width()
+        && height <= desktop_size.height()) {
       current->w = desktop_size.width();
       current->h = desktop_size.height();
       printf("portrait mode\n");
-    } else if(width <= desktop_size.height() && height <= desktop_size.width()) {
+    } else if (width <= desktop_size.height() && height <= desktop_size.width()) {
       // Landscape mode
       printf("landscape mode\n");
       char * envString = SDL_getenv(SDL_QT_ROTATION_ENV_NAME);
@@ -359,7 +349,7 @@ extern "C" {
     if ( flags & SDL_OPENGL ) {
       SDL_SetError("OpenGL not supported");
       return(NULL);
-    } 
+    }
     /* Create the QImage framebuffer */
     qimage = new QImage(current->w, current->h, QImage::Format_RGB16  );
     if (qimage->isNull()) {
@@ -376,66 +366,58 @@ extern "C" {
   }
 
   /* Update the current mouse state and position */
-  void QT_UpdateMouse(_THIS)
-  {
+  void QT_UpdateMouse(_THIS) {
     QPoint point(-1, -1);
     if ( SDL_Win->isActiveWindow() ) {
       point = SDL_Win->mousePos();
     }
-    
+
     if ( (point.x() >= 0) && (point.x() < SDL_VideoSurface->w) &&
-	 (point.y() >= 0) && (point.y() < SDL_VideoSurface->h) ) {
+         (point.y() >= 0) && (point.y() < SDL_VideoSurface->h) ) {
       SDL_PrivateAppActive(1, SDL_APPMOUSEFOCUS);
       SDL_PrivateMouseMotion(0, 0,
-			     (Sint16)point.x(), (Sint16)point.y());
+                             (Sint16)point.x(), (Sint16)point.y());
     } else {
       SDL_PrivateAppActive(0, SDL_APPMOUSEFOCUS);
     }
   }
 
   /* We don't actually allow hardware surfaces other than the main one */
-  static int QT_AllocHWSurface(_THIS, SDL_Surface *surface)
-  {
+  static int QT_AllocHWSurface(_THIS, SDL_Surface *surface) {
     return(-1);
   }
-  static void QT_FreeHWSurface(_THIS, SDL_Surface *surface)
-  {
+  static void QT_FreeHWSurface(_THIS, SDL_Surface *surface) {
     return;
   }
-  static int QT_LockHWSurface(_THIS, SDL_Surface *surface)
-  {
+  static int QT_LockHWSurface(_THIS, SDL_Surface *surface) {
     return(0);
   }
-  static void QT_UnlockHWSurface(_THIS, SDL_Surface *surface)
-  {
+  static void QT_UnlockHWSurface(_THIS, SDL_Surface *surface) {
     return;
   }
 
-  static void QT_NormalUpdate(_THIS, int numrects, SDL_Rect *rects)
-  {
-      for(int i=0; i<numrects; ++i ) {
-	QRect rect(rects[i].x, rects[i].y,
-		   rects[i].w, rects[i].h);
-	SDL_Win->repaintRect(rect);
-      }
+  static void QT_NormalUpdate(_THIS, int numrects, SDL_Rect *rects) {
+    for (int i=0; i<numrects; ++i ) {
+      QRect rect(rects[i].x, rects[i].y,
+                 rects[i].w, rects[i].h);
+      SDL_Win->repaintRect(rect);
+    }
   }
   /* Is the system palette settable? */
-  int QT_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
-  {
+  int QT_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors) {
     return -1;
   }
 
-  void QT_VideoQuit(_THIS)
-  {
+  void QT_VideoQuit(_THIS) {
     // This is dumb, but if I free this, the app doesn't exit correctly.
     // Of course, this will leak memory if init video is done more than once.
     // Sucks but such is life.
-    
+
     //    -- David Hedbor
-    //    delete SDL_Win; 
+    //    delete SDL_Win;
     //    SDL_Win = 0;
     _this->screen->pixels = NULL;
-    if(SDL_Win){
+    if (SDL_Win) {
       QT_GrabInput(_this, SDL_GRAB_OFF);
       delete SDL_Win;
       SDL_Win = 0;
@@ -452,11 +434,11 @@ extern "C" {
       qApp->mainWidget()->grabKeyboard();
       qApp->processEvents();
       qApp->mainWidget()->releaseKeyboard();
-    } else {
+      } else {
       qApp->mainWidget()->grabKeyboard();
-    }
-    qApp->processEvents();*/
+      }
+      qApp->processEvents();*/
     return mode;
   }
-  
+
 }; /* Extern C */

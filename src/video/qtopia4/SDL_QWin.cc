@@ -42,87 +42,80 @@ screenRotationT screenRotation = SDL_QT_NO_ROTATION;
 #ifdef __cplusplus
 extern "C" {
 #endif
-void SDL_ChannelExists(const char *channelName);
-void SDL_ShowSplash();
-void SDL_HideSplash();
+  void SDL_ChannelExists(const char *channelName);
+  void SDL_ShowSplash();
+  void SDL_HideSplash();
 
-extern int UTIL_GetIncomingCallStatus();
-extern int UTIL_GetFlipStatus();
-extern int UTIL_GetSideKeyLock();
+  extern int UTIL_GetIncomingCallStatus();
+  extern int UTIL_GetFlipStatus();
+  extern int UTIL_GetSideKeyLock();
 #ifdef __cplusplus
 }
 #endif
 
 static pid_t pid = -1;
-void SDL_ShowSplash()
-{
+void SDL_ShowSplash() {
   printf("%s\n",__func__);
 }
 
-void SDL_HideSplash()
-{
+void SDL_HideSplash() {
   printf("%s\n",__func__);
 }
 
-static inline bool needSuspend()
-{
+static inline bool needSuspend() {
   printf("%s\n",__func__);
 }
 
-void SDL_ChannelExists(const char *channelName)
-{
+void SDL_ChannelExists(const char *channelName) {
   printf("%s\n",__func__);
 }
 
 SDL_QWin::SDL_QWin(const QSize& size)
-  : QWidget( ),
-		my_image(0),
-    my_inhibit_resize(false), my_mouse_pos(-1, -1), 
+    : QWidget( ),
+    my_image(0),
+    my_inhibit_resize(false), my_mouse_pos(-1, -1),
     my_locked(0), my_special(false),
-    my_suspended(false), last_mod(false)
-{
+    my_suspended(false), last_mod(false) {
   setAttribute(Qt::WA_NoBackground  );
   fbdev = open("/dev/fb0", O_RDWR);
-  if(fbdev < 0){
+  if (fbdev < 0) {
     printf("open(/dev/fb0): %s\n", strerror(errno));
     return;
   }
 
   struct fb_fix_screeninfo fsi;
-  if(ioctl(fbdev, FBIOGET_FSCREENINFO, &fsi) < 0){
+  if (ioctl(fbdev, FBIOGET_FSCREENINFO, &fsi) < 0) {
     printf("ioctl(FBIOGET_FSCREENINFO): %s\n", strerror(errno));
     return;
   }
   vmem_length = fsi.smem_len;
 
   vmem = (char *)mmap(0, fsi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fbdev, 0);
-  if(vmem == (char *)-1){
+  if (vmem == (char *)-1) {
     printf("mmap: %s\n", strerror(errno));
-  }
-  else printf("map framebuffer at %p (size %d)\n", vmem, fsi.smem_len);
+  } else printf("map framebuffer at %p (size %d)\n", vmem, fsi.smem_len);
 
   init();
 }
 
 SDL_QWin::~SDL_QWin() {
-  if(my_image) {
+  if (my_image) {
     delete my_image;
   }
 
-  if(vmem != (char *)-1){
+  if (vmem != (char *)-1) {
     munmap(vmem, vmem_length);
     vmem = (char *)-1;
   }
 
-  if(fbdev != -1){
+  if (fbdev != -1) {
     ::close(fbdev);
     fbdev = -1;
   }
 
 }
-void SDL_QWin::signalRaise()
-{
-resume();
+void SDL_QWin::signalRaise() {
+  resume();
 }
 
 void SDL_QWin::setImage(QImage *image) {
@@ -136,15 +129,13 @@ void SDL_QWin::resizeEvent(QResizeEvent *e) {
 }
 
 
-void SDL_QWin::init()
-{
+void SDL_QWin::init() {
   grabKeyboard();
   grabMouse();
- // my_suspend = false;
+// my_suspend = false;
 }
 
-void SDL_QWin::suspend()
-{
+void SDL_QWin::suspend() {
   printf("suspend\n");
   releaseKeyboard();
   releaseMouse();
@@ -153,16 +144,14 @@ void SDL_QWin::suspend()
   hide();
 }
 
-void SDL_QWin::resume()
-{
+void SDL_QWin::resume() {
   printf("resume\n");
   init();
   show();
   SDL_PrivateAppActive(true, SDL_APPINPUTFOCUS);
 }
 
-void SDL_QWin::timerEvent(QTimerEvent *)
-{
+void SDL_QWin::timerEvent(QTimerEvent *) {
 //if(needSuspend() && !my_suspend) suspend();
 }
 
@@ -172,7 +161,7 @@ void SDL_QWin::closeEvent(QCloseEvent *e) {
 }
 
 void SDL_QWin::setMousePos(const QPoint &pos) {
-  if(my_image->width() == height()) {
+  if (my_image->width() == height()) {
     if (screenRotation == SDL_QT_ROTATION_90)
       my_mouse_pos = QPoint(height()-pos.y(), pos.x());
     else if (screenRotation == SDL_QT_ROTATION_270)
@@ -184,10 +173,9 @@ void SDL_QWin::setMousePos(const QPoint &pos) {
 
 void SDL_QWin::mouseMoveEvent(QMouseEvent *e) {
   int sdlstate = 0;
-  if(cur_mouse_button == EZX_LEFT_BUTTON) {
+  if (cur_mouse_button == EZX_LEFT_BUTTON) {
     sdlstate |= SDL_BUTTON_LMASK;
-  }
-  else {
+  } else {
     sdlstate |= SDL_BUTTON_RMASK;
   }
   //setMousePos(e->pos());
@@ -197,43 +185,42 @@ void SDL_QWin::mouseMoveEvent(QMouseEvent *e) {
 void SDL_QWin::mousePressEvent(QMouseEvent *e) {
   printf("%s\n",__func__);
 
-/*  mouseMoveEvent(e);
-  Qt::ButtonState button = e->button();
-  cur_mouse_button = my_special ? EZX_RIGHT_BUTTON : EZX_LEFT_BUTTON;
-  SDL_PrivateMouseButton(SDL_PRESSED, cur_mouse_button,
-			 my_mouse_pos.x(), my_mouse_pos.y()); */
+  /*  mouseMoveEvent(e);
+    Qt::ButtonState button = e->button();
+    cur_mouse_button = my_special ? EZX_RIGHT_BUTTON : EZX_LEFT_BUTTON;
+    SDL_PrivateMouseButton(SDL_PRESSED, cur_mouse_button,
+  			 my_mouse_pos.x(), my_mouse_pos.y()); */
 }
 
 void SDL_QWin::mouseReleaseEvent(QMouseEvent *e) {
   printf("%s\n",__func__);
-/*
-  setMousePos(e->pos());
-  Qt::ButtonState button = e->button();
-  SDL_PrivateMouseButton(SDL_RELEASED, cur_mouse_button,
-			 my_mouse_pos.x(), my_mouse_pos.y());
-  my_mouse_pos = QPoint(-1, -1); */
+  /*
+    setMousePos(e->pos());
+    Qt::ButtonState button = e->button();
+    SDL_PrivateMouseButton(SDL_RELEASED, cur_mouse_button,
+  			 my_mouse_pos.x(), my_mouse_pos.y());
+    my_mouse_pos = QPoint(-1, -1); */
 }
 
 void SDL_QWin::repaintRect(const QRect& rect) {
-  
+
   /* next - special for 18bpp framebuffer */
   /* so any other - back off */
 
 #if 1
   // 18 bpp - really 3 bytes per pixel
-  if(screenRotation == SDL_QT_ROTATION_90){
+  if (screenRotation == SDL_QT_ROTATION_90) {
     QRect rs = my_image->rect();
     QRect rd;
 
     int id, jd;
 
-    if(rect.y() + rect.height() > 240){
+    if (rect.y() + rect.height() > 240) {
       rs.setRect(rect.y(), 240 - rect.width() - rect.x(), rect.height(), rect.width());
       rd = rect;
       jd = rect.y() + rect.height() - 1;
       id = rect.x();
-    }
-    else{
+    } else {
       rs = rect;
       rd.setRect(rect.y(), 320 - rect.width() - rect.x(), rect.height(), rect.width());
       jd = 319 - rect.x();
@@ -255,11 +242,11 @@ void SDL_QWin::repaintRect(const QRect& rect) {
     int dst_offset = jd * 720 + id * 3;
     int src_offset = rs.y() * my_image->bytesPerLine() + rs.x() * 2;
 
-    for(int ii = rs.y(); ii < is_lim;
-        dst_offset += 3, src_offset += my_image->bytesPerLine(), ii++){
+    for (int ii = rs.y(); ii < is_lim;
+         dst_offset += 3, src_offset += my_image->bytesPerLine(), ii++) {
       dst = dst0 + dst_offset;
       src = src0 + src_offset;
-      for(int j = 0; j < rs.width(); j++){
+      for (int j = 0; j < rs.width(); j++) {
         unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
         dst[0] = src[0] << 1;
         dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
@@ -269,20 +256,18 @@ void SDL_QWin::repaintRect(const QRect& rect) {
       }
     }
     //printf("done\n");
-  }
-  else if(screenRotation == SDL_QT_ROTATION_270){
+  } else if (screenRotation == SDL_QT_ROTATION_270) {
     QRect rs = my_image->rect();
     QRect rd;
 
     int id, jd;
 
-    if(rect.y() + rect.height() > 240){
+    if (rect.y() + rect.height() > 240) {
       rs.setRect(rect.y(), 240 - rect.width() - rect.x(), rect.height(), rect.width());
       rd = rect;
       jd = rect.y();
       id = rect.x() + rect.width() - 1;
-    }
-    else{
+    } else {
       rs = rect;
       rd.setRect(rect.y(), 320 - rect.width() - rect.x(), rect.height(), rect.width());
       jd = rect.x();
@@ -300,11 +285,11 @@ void SDL_QWin::repaintRect(const QRect& rect) {
     int dst_offset = jd * 720 + id * 3;
     int src_offset = rs.y() * my_image->bytesPerLine() + rs.x() * 2;
 
-    for(int ii = rs.y(); ii < is_lim;
-        dst_offset -= 3, src_offset += my_image->bytesPerLine(), ii++){
+    for (int ii = rs.y(); ii < is_lim;
+         dst_offset -= 3, src_offset += my_image->bytesPerLine(), ii++) {
       dst = dst0 + dst_offset;
       src = src0 + src_offset;
-      for(int j = 0; j < rs.width(); j++){
+      for (int j = 0; j < rs.width(); j++) {
         unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
         dst[0] = src[0] << 1;
         dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
@@ -313,23 +298,22 @@ void SDL_QWin::repaintRect(const QRect& rect) {
         src += 2;
       }
     }
-  }
-  else
+  } else
 #endif
   {
     uchar *src0 = (uchar *)my_image->bits();
     uchar *dst0 = (uchar *)vmem;
     uchar *dst, *src;
-    
+
     int is_lim = rect.y() + rect.height();
     int s_offset = rect.y() * my_image->bytesPerLine() + rect.x() * 2;
     int offset = rect.y() * 720 + rect.x() * 3;
 
-    for(int ii = rect.y(); ii < is_lim; ii++, offset += 720,
-                s_offset += my_image->bytesPerLine()){
+    for (int ii = rect.y(); ii < is_lim; ii++, offset += 720,
+         s_offset += my_image->bytesPerLine()) {
       dst = dst0 + offset;
       src = src0 + s_offset;
-      for(int j = 0; j < rect.width(); j++){      
+      for (int j = 0; j < rect.width(); j++) {
         unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
         dst[0] = src[0] << 1;
         dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
@@ -341,30 +325,26 @@ void SDL_QWin::repaintRect(const QRect& rect) {
   }
 }
 
-// This paints the current buffer to the screen, when desired. 
-void SDL_QWin::paintEvent(QPaintEvent *ev) {  
-/*  if(my_image) {
-    repaintRect(ev->rect());
-  } */
-}  
+// This paints the current buffer to the screen, when desired.
+void SDL_QWin::paintEvent(QPaintEvent *ev) {
+  /*  if(my_image) {
+      repaintRect(ev->rect());
+    } */
+}
 
-inline int SDL_QWin::keyUp()
-{
+inline int SDL_QWin::keyUp() {
   return my_special ? SDLK_g : SDLK_UP;
 }
 
-inline int SDL_QWin::keyDown()
-{
+inline int SDL_QWin::keyDown() {
   return my_special ? SDLK_h : SDLK_DOWN;
 }
 
-inline int SDL_QWin::keyLeft()
-{
+inline int SDL_QWin::keyLeft() {
   return my_special ? SDLK_i : SDLK_LEFT;
 }
 
-inline int SDL_QWin::keyRight()
-{
+inline int SDL_QWin::keyRight() {
   return my_special ? SDLK_j : SDLK_RIGHT;
 }
 
@@ -372,90 +352,89 @@ inline int SDL_QWin::keyRight()
  * This should probably be a table although this method isn't exactly
  * slow.
  */
-void SDL_QWin::QueueKey(QKeyEvent *e, int pressed)
-{  
+void SDL_QWin::QueueKey(QKeyEvent *e, int pressed) {
   SDL_keysym keysym;
   int scancode = 0;//e->key();
 
   //if(pressed){
-    if(last.scancode){
-      // we press/release mod-key without releasing another key
-      if(last_mod != my_special){
-        SDL_PrivateKeyboard(SDL_RELEASED, &last);
-      }
+  if (last.scancode) {
+    // we press/release mod-key without releasing another key
+    if (last_mod != my_special) {
+      SDL_PrivateKeyboard(SDL_RELEASED, &last);
     }
+  }
   //}
 
   /* Set the keysym information */
-  if(scancode >= 'A' && scancode <= 'Z') {
+  if (scancode >= 'A' && scancode <= 'Z') {
     // Qt sends uppercase, SDL wants lowercase
     keysym.sym = static_cast<SDLKey>(scancode + 32);
-  } else if(scancode  >= 0x1000) {
+  } else if (scancode  >= 0x1000) {
     // Special keys
-    switch(scancode) {
-      case 0x1031: //Cancel
-        scancode = my_special ? SDLK_a : SDLK_ESCAPE;
+    switch (scancode) {
+    case 0x1031: //Cancel
+      scancode = my_special ? SDLK_a : SDLK_ESCAPE;
       break;
-      case 0x1004: //Joystick center
-        scancode = my_special ? SDLK_b : SDLK_RETURN;
+    case 0x1004: //Joystick center
+      scancode = my_special ? SDLK_b : SDLK_RETURN;
       break;
-      case 0x1012: // Qt::Key_Left
-        if (screenRotation == SDL_QT_ROTATION_90) scancode = keyUp();
-        else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyDown();
-        else scancode = keyLeft();
+    case 0x1012: // Qt::Key_Left
+      if (screenRotation == SDL_QT_ROTATION_90) scancode = keyUp();
+      else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyDown();
+      else scancode = keyLeft();
       break;
-      case 0x1013: // Qt::Key_Up
-        if (screenRotation == SDL_QT_ROTATION_90) scancode = keyRight();
-        else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyLeft();
-        else scancode = keyUp();
+    case 0x1013: // Qt::Key_Up
+      if (screenRotation == SDL_QT_ROTATION_90) scancode = keyRight();
+      else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyLeft();
+      else scancode = keyUp();
       break;
-      case 0x1014: // Qt::Key_Right
-        if (screenRotation == SDL_QT_ROTATION_90) scancode = keyDown();
-        else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyUp();
-        else scancode = keyRight();
+    case 0x1014: // Qt::Key_Right
+      if (screenRotation == SDL_QT_ROTATION_90) scancode = keyDown();
+      else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyUp();
+      else scancode = keyRight();
       break;
-      case 0x1015: // Qt::Key_Down
-        if (screenRotation == SDL_QT_ROTATION_90) scancode = keyLeft();
-        else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyRight();
-        else scancode = keyDown();
+    case 0x1015: // Qt::Key_Down
+      if (screenRotation == SDL_QT_ROTATION_90) scancode = keyLeft();
+      else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyRight();
+      else scancode = keyDown();
       break;
-      case 0x1005: //special key
-      case 0x104d: //special key
-        if(pressed) my_special = true;
-        else my_special = false;
+    case 0x1005: //special key
+    case 0x104d: //special key
+      if (pressed) my_special = true;
+      else my_special = false;
       return;
-      case 0x1016: //VolUp
-        scancode = my_special ? SDLK_c : SDLK_PLUS;
+    case 0x1016: //VolUp
+      scancode = my_special ? SDLK_c : SDLK_PLUS;
       break;
-      case 0x1017: //VolDown
-        scancode = my_special ? SDLK_d : SDLK_MINUS;
+    case 0x1017: //VolDown
+      scancode = my_special ? SDLK_d : SDLK_MINUS;
       break;
-      case 0x1034: //Photo
-        scancode = my_special ? SDLK_e : SDLK_PAUSE;
+    case 0x1034: //Photo
+      scancode = my_special ? SDLK_e : SDLK_PAUSE;
       break;
-      case 0x1030: //Call
-        scancode = my_special ? SDLK_f : SDLK_SPACE;
+    case 0x1030: //Call
+      scancode = my_special ? SDLK_f : SDLK_SPACE;
       break;
-			case 0x104b: //Prev
-				scancode = my_special ? SDLK_k : SDLK_o;
-			break;
-			case 0x1049: //Play
-				scancode = my_special ? SDLK_l : SDLK_p;
-			break;
-			case 0x104c: //Next
-				scancode = my_special ? SDLK_m : SDLK_q;
-			break;
-			case 0x1033: //Browser
-				scancode = my_special ? SDLK_n : SDLK_r;
-			break;
-    
-      default:
-        scancode = SDLK_UNKNOWN;
+    case 0x104b: //Prev
+      scancode = my_special ? SDLK_k : SDLK_o;
+      break;
+    case 0x1049: //Play
+      scancode = my_special ? SDLK_l : SDLK_p;
+      break;
+    case 0x104c: //Next
+      scancode = my_special ? SDLK_m : SDLK_q;
+      break;
+    case 0x1033: //Browser
+      scancode = my_special ? SDLK_n : SDLK_r;
+      break;
+
+    default:
+      scancode = SDLK_UNKNOWN;
       break;
     }
-    keysym.sym = static_cast<SDLKey>(scancode);    
+    keysym.sym = static_cast<SDLKey>(scancode);
   } else {
-    keysym.sym = static_cast<SDLKey>(scancode);    
+    keysym.sym = static_cast<SDLKey>(scancode);
   }
   keysym.scancode = scancode;
   keysym.mod = KMOD_NONE;

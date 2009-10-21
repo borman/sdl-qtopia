@@ -33,15 +33,13 @@
 
 extern "C" {
 
-void QT_PumpEvents(_THIS)
-{
-  if(!qApp) {
-    return; 
+  void QT_PumpEvents(_THIS) {
+    if (!qApp) {
+      return;
+    }
+    qApp->processEvents();
   }
-  qApp->processEvents();
-}
 
-void QT_InitOSKeymap(_THIS)
-{}
+  void QT_InitOSKeymap(_THIS) {}
 
 }; /* Extern C */

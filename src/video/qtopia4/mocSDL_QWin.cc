@@ -20,52 +20,51 @@
 #include "qmetaobject.h"
 static const uint qt_meta_data_SDL_QWin[] = {
 
- // content:
-       1,       // revision
-       0,       // classname
-       0,    0, // classinfo
-       1,   10, // methods
-       0,    0, // properties
-       0,    0, // enums/sets
+// content:
+  1,       // revision
+  0,       // classname
+  0,    0, // classinfo
+  1,   10, // methods
+  0,    0, // properties
+  0,    0, // enums/sets
 
- // slots: signature, parameters, type, tag, flags
-      10,    9,    9,    9, 0x0a,
+// slots: signature, parameters, type, tag, flags
+  10,    9,    9,    9, 0x0a,
 
-       0        // eod
+  0        // eod
 };
 
 static const char qt_meta_stringdata_SDL_QWin[] = {
-    "SDL_QWin\0\0signalRaise()\0"
+  "SDL_QWin\0\0signalRaise()\0"
 };
 
 const QMetaObject SDL_QWin::staticMetaObject = {
-    { &QWidget::staticMetaObject, qt_meta_stringdata_SDL_QWin,
-      qt_meta_data_SDL_QWin, 0 }
+  { &QWidget::staticMetaObject, qt_meta_stringdata_SDL_QWin,
+    qt_meta_data_SDL_QWin, 0 }
 };
 
-const QMetaObject *SDL_QWin::metaObject() const
-{
-    return &staticMetaObject;
+const QMetaObject *SDL_QWin::metaObject() const {
+  return &staticMetaObject;
 }
 
-void *SDL_QWin::qt_metacast(const char *_clname)
-{
-    if (!_clname) return 0;
-    if (!strcmp(_clname, qt_meta_stringdata_SDL_QWin))
-	return static_cast<void*>(const_cast< SDL_QWin*>(this));
-    return QWidget::qt_metacast(_clname);
+void *SDL_QWin::qt_metacast(const char *_clname) {
+  if (!_clname) return 0;
+  if (!strcmp(_clname, qt_meta_stringdata_SDL_QWin))
+    return static_cast<void*>(const_cast< SDL_QWin*>(this));
+  return QWidget::qt_metacast(_clname);
 }
 
-int SDL_QWin::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
-{
-    _id = QWidget::qt_metacall(_c, _id, _a);
-    if (_id < 0)
-        return _id;
-    if (_c == QMetaObject::InvokeMetaMethod) {
-        switch (_id) {
-        case 0: signalRaise(); break;
-        }
-        _id -= 1;
-    }
+int SDL_QWin::qt_metacall(QMetaObject::Call _c, int _id, void **_a) {
+  _id = QWidget::qt_metacall(_c, _id, _a);
+  if (_id < 0)
     return _id;
+  if (_c == QMetaObject::InvokeMetaMethod) {
+    switch (_id) {
+    case 0:
+      signalRaise();
+      break;
+    }
+    _id -= 1;
+  }
+  return _id;
 }
