@@ -76,7 +76,6 @@ SDL_QWin::SDL_QWin(QWidget * parent, Qt::WindowFlags f)
   
   painter = new QDirectPainter(this, QDirectPainter::Reserved);
   vmem = QDirectPainter::frameBuffer();
-
 }
 
 SDL_QWin::~SDL_QWin() {
@@ -96,7 +95,7 @@ void SDL_QWin::setImage(QImage *image) {
 }
 
 void SDL_QWin::showEvent(QShowEvent *) {
-  painter->raise();
+  init();
 }
 
 void SDL_QWin::resizeEvent(QResizeEvent *) {
@@ -110,6 +109,7 @@ void SDL_QWin::moveEvent(QMoveEvent *) {
 
 void SDL_QWin::init()
 {
+  printf("init()\n");
   grabKeyboard();
   grabMouse();
 // my_suspend = false;
@@ -154,28 +154,18 @@ void SDL_QWin::mouseMoveEvent(QMouseEvent *e) {
   } else {
     sdlstate |= SDL_BUTTON_RMASK;
   }
-  //setMousePos(e->pos());
-  SDL_PrivateMouseMotion(sdlstate, 0, my_mouse_pos.x(), my_mouse_pos.y());
+  SDL_PrivateMouseMotion(sdlstate, 0, e->x(), e->y());
 }
 
 void SDL_QWin::mousePressEvent(QMouseEvent *e) {
-  printf("%s\n",__func__);
-
-  /*  mouseMoveEvent(e);
-    Qt::ButtonState button = e->button();
-    cur_mouse_button = my_special ? EZX_RIGHT_BUTTON : EZX_LEFT_BUTTON;
-    SDL_PrivateMouseButton(SDL_PRESSED, cur_mouse_button,
-  			 my_mouse_pos.x(), my_mouse_pos.y()); */
+  cur_mouse_button = my_special ? EZX_RIGHT_BUTTON : EZX_LEFT_BUTTON;
+  SDL_PrivateMouseButton(SDL_PRESSED, cur_mouse_button,
+       e->x(), e->y());
 }
 
 void SDL_QWin::mouseReleaseEvent(QMouseEvent *e) {
-  printf("%s\n",__func__);
-  /*
-    setMousePos(e->pos());
-    Qt::ButtonState button = e->button();
-    SDL_PrivateMouseButton(SDL_RELEASED, cur_mouse_button,
-  			 my_mouse_pos.x(), my_mouse_pos.y());
-    my_mouse_pos = QPoint(-1, -1); */
+  SDL_PrivateMouseButton(SDL_RELEASED, cur_mouse_button,
+       e->x(), e->y());
 }
 
 void SDL_QWin::flushRegion(const QRegion &region) {
@@ -186,7 +176,7 @@ void SDL_QWin::flushRegion(const QRegion &region) {
     /* next - special for 18bpp framebuffer */
     /* so any other - back off */
 
-#if 1
+#if 0 // Disable rotation for now
     // 18 bpp - really 3 bytes per pixel
     if (screenRotation == SDL_QT_ROTATION_90) {
       QRect rs = my_image->rect();
@@ -308,11 +298,8 @@ void SDL_QWin::flushRegion(const QRegion &region) {
 
 // This paints the current buffer to the screen, when desired.
 void SDL_QWin::paintEvent(QPaintEvent *ev) {
-  /*
-  if(my_image) {
-    repaintRect(ev->rect());
-  }
-  */
+  if(my_image) 
+    flushRegion(ev->rect());
 }
 
 inline int SDL_QWin::keyUp() {
@@ -337,7 +324,7 @@ inline int SDL_QWin::keyRight() {
  */
 void SDL_QWin::QueueKey(QKeyEvent *e, int pressed) {
   SDL_keysym keysym;
-  int scancode = 0;//e->key();
+  int scancode = e->key();
 
   //if(pressed){
   if (last.scancode) {
@@ -361,22 +348,22 @@ void SDL_QWin::QueueKey(QKeyEvent *e, int pressed) {
     case 0x1004: //Joystick center
       scancode = my_special ? SDLK_b : SDLK_RETURN;
       break;
-    case 0x1012: // Qt::Key_Left
+    case Qt::Key_Left:
       if (screenRotation == SDL_QT_ROTATION_90) scancode = keyUp();
       else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyDown();
       else scancode = keyLeft();
       break;
-    case 0x1013: // Qt::Key_Up
+    case Qt::Key_Up:
       if (screenRotation == SDL_QT_ROTATION_90) scancode = keyRight();
       else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyLeft();
       else scancode = keyUp();
       break;
-    case 0x1014: // Qt::Key_Right
+    case Qt::Key_Right:
       if (screenRotation == SDL_QT_ROTATION_90) scancode = keyDown();
       else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyUp();
       else scancode = keyRight();
       break;
-    case 0x1015: // Qt::Key_Down
+    case Qt::Key_Down:
       if (screenRotation == SDL_QT_ROTATION_90) scancode = keyLeft();
       else if (screenRotation == SDL_QT_ROTATION_270) scancode = keyRight();
       else scancode = keyDown();
