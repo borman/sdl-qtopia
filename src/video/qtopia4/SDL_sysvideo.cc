@@ -231,14 +231,10 @@ extern "C" {
     _this->info.current_h = desktop_size.height();
 
     /* Create the window / widget */
-    SDL_Win = new SDL_QWin(QSize(QT_HIDDEN_SIZE, QT_HIDDEN_SIZE));
-    if (!SDL_Win->isOK()) {
-      delete SDL_Win;
-      SDL_Win = 0;
-      return -1;
-    }
-    //qApp->setMainWidget(SDL_Win);
-    SDL_Win->show();
+    SDL_Win = new SDL_QWin();
+    QtopiaApplication::instance()->setMainWidget(SDL_Win);
+    SDL_Win->setWindowTitle(QLatin1String("_allow_on_top_"));
+    SDL_Win->showFullScreen();
     //SDL_Win->hide();
 
     /* Fill in some window manager capabilities */
@@ -397,11 +393,10 @@ extern "C" {
   }
 
   static void QT_NormalUpdate(_THIS, int numrects, SDL_Rect *rects) {
-    for (int i=0; i<numrects; ++i ) {
-      QRect rect(rects[i].x, rects[i].y,
-                 rects[i].w, rects[i].h);
-      SDL_Win->repaintRect(rect);
-    }
+    QRegion region;
+    for (int i=0; i<numrects; ++i )
+      region += QRect(rects[i].x, rects[i].y, rects[i].w, rects[i].h);
+    SDL_Win->flushRegion(region);
   }
   /* Is the system palette settable? */
   int QT_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors) {

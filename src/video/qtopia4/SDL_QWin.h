@@ -30,7 +30,7 @@
 #include <QPixmap>
 #include <QWidget>
 #include <QObject>
-#include <linux/fb.h>
+#include <QDirectPainter>
 
 #include "SDL_events.h"
 
@@ -46,7 +46,6 @@ typedef enum {
 
 extern screenRotationT screenRotation;
 
-class QCopChannel;
 class SDL_QWin : public QWidget {
   Q_OBJECT
 private:
@@ -56,11 +55,9 @@ private:
   };
   void QueueKey(QKeyEvent *e, int pressed);
 public:
-  SDL_QWin(const QSize& size);
+  SDL_QWin(QWidget *parent = 0, Qt::WindowFlags f = 0);
   virtual ~SDL_QWin();
-  virtual bool shown(void) {
-    return isVisible();
-  }
+
   /* If called, the next resize event will not be forwarded to SDL. */
   virtual void inhibitResize(void) {
     my_inhibit_resize = true;
@@ -82,10 +79,7 @@ public:
   }
   void setMousePos(const QPoint& newpos);
 
-  void repaintRect(const QRect& rect);
-  bool isOK() {
-    return fbdev != -1 && vmem != (char *)-1;
-  }
+  void flushRegion(const QRegion& region);
 
 public slots:
   void signalRaise();
@@ -93,12 +87,13 @@ public slots:
 
 protected:
   /* Handle resizing of the window */
-  virtual void resizeEvent(QResizeEvent *e);
+  void resizeEvent(QResizeEvent *e);
+  void moveEvent(QMoveEvent *e);
+  void showEvent(QShowEvent *e);
 #ifdef MOTOEZX_TEST
   void focusInEvent(QFocusEvent *);
   void focusOutEvent(QFocusEvent *);
 #endif
-  void timerEvent(QTimerEvent *);
   void closeEvent(QCloseEvent *e);
   void mouseMoveEvent(QMouseEvent *e);
   void mousePressEvent(QMouseEvent *e);
@@ -120,9 +115,8 @@ private:
   int keyLeft();
   int keyRight();
 
-  int fbdev;
-  char *vmem;
-  size_t vmem_length;
+  uchar *vmem;
+  QDirectPainter *painter;
   QImage *my_image;
   bool my_inhibit_resize;
   QPoint my_offset;
@@ -130,7 +124,6 @@ private:
   unsigned int my_locked;
   int cur_mouse_button;
   bool my_special;
-  QCopChannel *qcop;
   int my_timer;
   bool my_suspended;
   SDL_keysym last;

@@ -32,26 +32,22 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <qtopiaapplication.h>
-#include <qcopchannel_qws.h>
 #include <stdlib.h>
+
 #include <QObject>
+#include <QPaintEvent>
+
+#include <QtopiaApplication>
+#include <QDirectPainter>
+
 screenRotationT screenRotation = SDL_QT_NO_ROTATION;
 
 
-#ifdef __cplusplus
 extern "C" {
-#endif
   void SDL_ChannelExists(const char *channelName);
   void SDL_ShowSplash();
   void SDL_HideSplash();
-
-  extern int UTIL_GetIncomingCallStatus();
-  extern int UTIL_GetFlipStatus();
-  extern int UTIL_GetSideKeyLock();
-#ifdef __cplusplus
 }
-#endif
 
 static pid_t pid = -1;
 void SDL_ShowSplash() {
@@ -70,49 +66,23 @@ void SDL_ChannelExists(const char *channelName) {
   printf("%s\n",__func__);
 }
 
-SDL_QWin::SDL_QWin(const QSize& size)
-    : QWidget( ),
+SDL_QWin::SDL_QWin(QWidget * parent, Qt::WindowFlags f)
+    : QWidget(parent, f),
     my_image(0),
     my_inhibit_resize(false), my_mouse_pos(-1, -1),
     my_locked(0), my_special(false),
     my_suspended(false), last_mod(false) {
   setAttribute(Qt::WA_NoBackground  );
-  fbdev = open("/dev/fb0", O_RDWR);
-  if (fbdev < 0) {
-    printf("open(/dev/fb0): %s\n", strerror(errno));
-    return;
-  }
+  
+  painter = new QDirectPainter(this, QDirectPainter::Reserved);
+  vmem = QDirectPainter::frameBuffer();
 
-  struct fb_fix_screeninfo fsi;
-  if (ioctl(fbdev, FBIOGET_FSCREENINFO, &fsi) < 0) {
-    printf("ioctl(FBIOGET_FSCREENINFO): %s\n", strerror(errno));
-    return;
-  }
-  vmem_length = fsi.smem_len;
-
-  vmem = (char *)mmap(0, fsi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fbdev, 0);
-  if (vmem == (char *)-1) {
-    printf("mmap: %s\n", strerror(errno));
-  } else printf("map framebuffer at %p (size %d)\n", vmem, fsi.smem_len);
-
-  init();
 }
 
 SDL_QWin::~SDL_QWin() {
   if (my_image) {
     delete my_image;
   }
-
-  if (vmem != (char *)-1) {
-    munmap(vmem, vmem_length);
-    vmem = (char *)-1;
-  }
-
-  if (fbdev != -1) {
-    ::close(fbdev);
-    fbdev = -1;
-  }
-
 }
 void SDL_QWin::signalRaise() {
   resume();
@@ -125,11 +95,21 @@ void SDL_QWin::setImage(QImage *image) {
   my_image = image;
 }
 
-void SDL_QWin::resizeEvent(QResizeEvent *e) {
+void SDL_QWin::showEvent(QShowEvent *) {
+  painter->raise();
 }
 
+void SDL_QWin::resizeEvent(QResizeEvent *) {
+  qDebug() << "Resized to" << geometry();
+  painter->setRegion(geometry());
+}
 
-void SDL_QWin::init() {
+void SDL_QWin::moveEvent(QMoveEvent *) {
+  painter->setRegion(geometry());
+}
+
+void SDL_QWin::init()
+{
   grabKeyboard();
   grabMouse();
 // my_suspend = false;
@@ -149,10 +129,6 @@ void SDL_QWin::resume() {
   init();
   show();
   SDL_PrivateAppActive(true, SDL_APPINPUTFOCUS);
-}
-
-void SDL_QWin::timerEvent(QTimerEvent *) {
-//if(needSuspend() && !my_suspend) suspend();
 }
 
 void SDL_QWin::closeEvent(QCloseEvent *e) {
@@ -202,134 +178,141 @@ void SDL_QWin::mouseReleaseEvent(QMouseEvent *e) {
     my_mouse_pos = QPoint(-1, -1); */
 }
 
-void SDL_QWin::repaintRect(const QRect& rect) {
+void SDL_QWin::flushRegion(const QRegion &region) {
+  painter->startPainting();
+  QRegion realRegion = region & painter->allocatedRegion();
 
-  /* next - special for 18bpp framebuffer */
-  /* so any other - back off */
+  foreach(const QRect &rect, realRegion.rects()) {
+    /* next - special for 18bpp framebuffer */
+    /* so any other - back off */
 
 #if 1
-  // 18 bpp - really 3 bytes per pixel
-  if (screenRotation == SDL_QT_ROTATION_90) {
-    QRect rs = my_image->rect();
-    QRect rd;
+    // 18 bpp - really 3 bytes per pixel
+    if (screenRotation == SDL_QT_ROTATION_90) {
+      QRect rs = my_image->rect();
+      QRect rd;
 
-    int id, jd;
+      int id, jd;
 
-    if (rect.y() + rect.height() > 240) {
-      rs.setRect(rect.y(), 240 - rect.width() - rect.x(), rect.height(), rect.width());
-      rd = rect;
-      jd = rect.y() + rect.height() - 1;
-      id = rect.x();
-    } else {
-      rs = rect;
-      rd.setRect(rect.y(), 320 - rect.width() - rect.x(), rect.height(), rect.width());
-      jd = 319 - rect.x();
-      id = rect.y();
-    }
-
-    //printf("rs: %d %d %d %d\n", rs.x(), rs.y(), rs.width(), rs.height());
-    //printf("rd: %d %d %d %d\n", rd.x(), rd.y(), rd.width(), rd.height());
-    //printf("id: %d, jd: %d\n", id, jd);
-
-    int ii = id, jj;
-    uchar *src0 = (uchar *)my_image->bits();
-    uchar *dst0 = (uchar *)vmem;
-    uchar *dst, *src;
-
-    src += rs.y() * my_image->bytesPerLine() + rs.x() * 2;
-
-    int is_lim = rs.y() + rs.height();
-    int dst_offset = jd * 720 + id * 3;
-    int src_offset = rs.y() * my_image->bytesPerLine() + rs.x() * 2;
-
-    for (int ii = rs.y(); ii < is_lim;
-         dst_offset += 3, src_offset += my_image->bytesPerLine(), ii++) {
-      dst = dst0 + dst_offset;
-      src = src0 + src_offset;
-      for (int j = 0; j < rs.width(); j++) {
-        unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
-        dst[0] = src[0] << 1;
-        dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
-        dst[2] = (tmp & 0x300) >> 8;
-        dst -= 720;
-        src += 2;
+      if (rect.y() + rect.height() > 240) {
+        rs.setRect(rect.y(), 240 - rect.width() - rect.x(), rect.height(), rect.width());
+        rd = rect;
+        jd = rect.y() + rect.height() - 1;
+        id = rect.x();
+      } else {
+        rs = rect;
+        rd.setRect(rect.y(), 320 - rect.width() - rect.x(), rect.height(), rect.width());
+        jd = 319 - rect.x();
+        id = rect.y();
       }
-    }
-    //printf("done\n");
-  } else if (screenRotation == SDL_QT_ROTATION_270) {
-    QRect rs = my_image->rect();
-    QRect rd;
 
-    int id, jd;
+      //printf("rs: %d %d %d %d\n", rs.x(), rs.y(), rs.width(), rs.height());
+      //printf("rd: %d %d %d %d\n", rd.x(), rd.y(), rd.width(), rd.height());
+      //printf("id: %d, jd: %d\n", id, jd);
 
-    if (rect.y() + rect.height() > 240) {
-      rs.setRect(rect.y(), 240 - rect.width() - rect.x(), rect.height(), rect.width());
-      rd = rect;
-      jd = rect.y();
-      id = rect.x() + rect.width() - 1;
-    } else {
-      rs = rect;
-      rd.setRect(rect.y(), 320 - rect.width() - rect.x(), rect.height(), rect.width());
-      jd = rect.x();
-      id = 239 - rect.y();
-    }
+      int ii = id, jj;
+      uchar *src0 = my_image->bits();
+      uchar *dst0 = vmem;
+      uchar *dst, *src;
 
-    int ii = id, jj;
-    uchar *src0 = (uchar *)my_image->bits();
-    uchar *dst0 = (uchar *)vmem;
-    uchar *dst, *src;
+      src += rs.y() * my_image->bytesPerLine() + rs.x() * 2;
 
-    src += rs.y() * my_image->bytesPerLine() + rs.x() * 2;
+      int is_lim = rs.y() + rs.height();
+      int dst_offset = jd * 720 + id * 3;
+      int src_offset = rs.y() * my_image->bytesPerLine() + rs.x() * 2;
 
-    int is_lim = rs.y() + rs.height();
-    int dst_offset = jd * 720 + id * 3;
-    int src_offset = rs.y() * my_image->bytesPerLine() + rs.x() * 2;
-
-    for (int ii = rs.y(); ii < is_lim;
-         dst_offset -= 3, src_offset += my_image->bytesPerLine(), ii++) {
-      dst = dst0 + dst_offset;
-      src = src0 + src_offset;
-      for (int j = 0; j < rs.width(); j++) {
-        unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
-        dst[0] = src[0] << 1;
-        dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
-        dst[2] = (tmp & 0x300) >> 8;
-        dst += 720;
-        src += 2;
+      for (int ii = rs.y(); ii < is_lim;
+           dst_offset += 3, src_offset += my_image->bytesPerLine(), ii++) {
+        dst = dst0 + dst_offset;
+        src = src0 + src_offset;
+        for (int j = 0; j < rs.width(); j++) {
+          unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
+          dst[0] = src[0] << 1;
+          dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
+          dst[2] = (tmp & 0x300) >> 8;
+          dst -= 720;
+          src += 2;
+        }
       }
-    }
-  } else
+      //printf("done\n");
+    } else if (screenRotation == SDL_QT_ROTATION_270) {
+      QRect rs = my_image->rect();
+      QRect rd;
+
+      int id, jd;
+
+      if (rect.y() + rect.height() > 240) {
+        rs.setRect(rect.y(), 240 - rect.width() - rect.x(), rect.height(), rect.width());
+        rd = rect;
+        jd = rect.y();
+        id = rect.x() + rect.width() - 1;
+      } else {
+        rs = rect;
+        rd.setRect(rect.y(), 320 - rect.width() - rect.x(), rect.height(), rect.width());
+        jd = rect.x();
+        id = 239 - rect.y();
+      }
+
+      int ii = id, jj;
+      uchar *src0 = my_image->bits();
+      uchar *dst0 = vmem;
+      uchar *dst, *src;
+
+      src += rs.y() * my_image->bytesPerLine() + rs.x() * 2;
+
+      int is_lim = rs.y() + rs.height();
+      int dst_offset = jd * 720 + id * 3;
+      int src_offset = rs.y() * my_image->bytesPerLine() + rs.x() * 2;
+
+      for (int ii = rs.y(); ii < is_lim;
+           dst_offset -= 3, src_offset += my_image->bytesPerLine(), ii++) {
+        dst = dst0 + dst_offset;
+        src = src0 + src_offset;
+        for (int j = 0; j < rs.width(); j++) {
+          unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
+          dst[0] = src[0] << 1;
+          dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
+          dst[2] = (tmp & 0x300) >> 8;
+          dst += 720;
+          src += 2;
+        }
+      }
+    } else
 #endif
-  {
-    uchar *src0 = (uchar *)my_image->bits();
-    uchar *dst0 = (uchar *)vmem;
-    uchar *dst, *src;
+    {
+      uchar *src0 = my_image->bits();
+      uchar *dst0 = vmem;
+      uchar *dst, *src;
 
-    int is_lim = rect.y() + rect.height();
-    int s_offset = rect.y() * my_image->bytesPerLine() + rect.x() * 2;
-    int offset = rect.y() * 720 + rect.x() * 3;
+      int is_lim = rect.y() + rect.height();
+      int s_offset = rect.y() * my_image->bytesPerLine() + rect.x() * 2;
+      int offset = rect.y() * 720 + rect.x() * 3;
 
-    for (int ii = rect.y(); ii < is_lim; ii++, offset += 720,
-         s_offset += my_image->bytesPerLine()) {
-      dst = dst0 + offset;
-      src = src0 + s_offset;
-      for (int j = 0; j < rect.width(); j++) {
-        unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
-        dst[0] = src[0] << 1;
-        dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
-        dst[2] = (tmp & 0x300) >> 8;
-        src += 2;
-        dst += 3;
+      for (int ii = rect.y(); ii < is_lim; ii++, offset += 720,
+           s_offset += my_image->bytesPerLine()) {
+        dst = dst0 + offset;
+        src = src0 + s_offset;
+        for (int j = 0; j < rect.width(); j++) {
+          unsigned short tmp = ((unsigned short)(src[1] & 0xf8)) << 2;
+          dst[0] = src[0] << 1;
+          dst[1] = ((src[0] & 0x80) >> 7) | ((src[1] & 0x7) << 1) | (tmp & 0xff);
+          dst[2] = (tmp & 0x300) >> 8;
+          src += 2;
+          dst += 3;
+        }
       }
     }
   }
+  painter->endPainting(realRegion);
 }
 
 // This paints the current buffer to the screen, when desired.
 void SDL_QWin::paintEvent(QPaintEvent *ev) {
-  /*  if(my_image) {
-      repaintRect(ev->rect());
-    } */
+  /*
+  if(my_image) {
+    repaintRect(ev->rect());
+  }
+  */
 }
 
 inline int SDL_QWin::keyUp() {
