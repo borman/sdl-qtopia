@@ -1577,11 +1577,14 @@ CheckQtopia4() {
     AC_ARG_ENABLE(video-qtopia4,
 AC_HELP_STRING([--enable-video-qtopia4], [use qtopia4 video driver [[default=no]]]),
                   , enable_video_qtopia4=no)
+    AC_ARG_WITH(qtopia4-sdk,[  --with-qtopia4-sdk=PATH Path where Qtopia4 SDK is installed (optional)],
+               qtopia4_sdk="$withval", qtopia4_sdk="")
+
     if test x$enable_video = xyes -a x$enable_video_qtopia4 = xyes; then
         AC_MSG_CHECKING(for Qtopia4)
         video_qtopia4=no
-        _qi=-I/opt/toolchains/arm-iwmmxt-linux-gnu/qtopia/include
-        _qti=-I/opt/toolchains/arm-iwmmxt-linux-gnu/qtopia/qtopiacore/target/include
+        _qi=-I${qtopia4_sdk}/include
+        _qti=-I${qtopia4_sdk}/qtopiacore/target/include
         QTOPIA4_FLAGS="-DQWS $_qi $_qi/qtopiabase $_qi/qtopia $_qti/QtGui $_qti/Qt $_qti/QtCore  $_qti "
         AC_LANG_CPLUSPLUS
         OLD_CXX="$CXXFLAGS"
