@@ -1,5 +1,6 @@
 # VIM backup files
 *~
+*.orig
 
 # autoconf traces
 configure
