@@ -37,15 +37,19 @@
 #include <QObject>
 #include <QPaintEvent>
 #include <QScreen>
-
-#include <QtopiaApplication>
+#include <QDesktopWidget>
 #include <QDirectPainter>
+#include <QApplication>
+
+#include <QtDebug>
 
 SDL_QWin::SDL_QWin(QWidget * parent, Qt::WindowFlags f)
   : QWidget(parent, f), 
   rotationMode(NoRotation), backBuffer(NULL), useRightMouseButton(false)
 {
-  painter = new QDirectPainter(this, QDirectPainter::NonReserved);
+  painter = new QDirectPainter(this, QDirectPainter::Reserved); 
+  painter->setGeometry(QApplication::desktop()->screenGeometry());
+    // TODO: Find out how to avoid reserving the whole screen
   vmem = QDirectPainter::frameBuffer();
 }
 
@@ -87,7 +91,7 @@ void SDL_QWin::showEvent(QShowEvent *) {
   grabMouse();
 }
 
-void SDL_QWin::suspend() {
+void SDL_QWin::suspend() { // FIXME: not used
   printf("suspend\n");
   releaseKeyboard();
   releaseMouse();
@@ -95,7 +99,7 @@ void SDL_QWin::suspend() {
   hide();
 }
 
-void SDL_QWin::resume() {
+void SDL_QWin::resume() { // FIXME: not used
   printf("resume\n");
   show();
   SDL_PrivateAppActive(true, SDL_APPINPUTFOCUS);
@@ -125,7 +129,6 @@ void SDL_QWin::mousePressEvent(QMouseEvent *e) {
     pressedButton = e->button();
 
   mousePosition = toSDL.map(e->globalPos());
-  qDebug() << e->globalPos() << mousePosition;
   SDL_PrivateMouseButton(SDL_PRESSED, (pressedButton==Qt::LeftButton)?SDL_BUTTON_LEFT:SDL_BUTTON_RIGHT,
      mousePosition.x(), mousePosition.y());
 }
@@ -137,22 +140,16 @@ void SDL_QWin::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void SDL_QWin::flushRegion(const QRegion &region) {
-  QRegion realRegion = region & visibleRegion();
-
-  painter->raise();
   painter->startPainting();
 
-  if (rotationMode!=NoRotation)
-    return;
-
-  foreach(const QRect &rect, realRegion.rects()) {
+  foreach(const QRect &rect, region.rects()) {
     /* next - special for 18bpp framebuffer */
     /* so any other - back off */
 
-#if 0 // Disable rotation for now
+#if 1 // Disable rotation for now
     // 18 bpp - really 3 bytes per pixel
-    if (screenRotation == SDL_QT_ROTATION_90) {
-      QRect rs = my_image->rect();
+    if (rotationMode==Clockwise) {
+      QRect rs = backBuffer->rect();
       QRect rd;
 
       int id, jd;
@@ -174,18 +171,18 @@ void SDL_QWin::flushRegion(const QRegion &region) {
       //printf("id: %d, jd: %d\n", id, jd);
 
       int ii = id, jj;
-      uchar *src0 = my_image->bits();
+      uchar *src0 = backBuffer->bits();
       uchar *dst0 = vmem;
       uchar *dst, *src;
 
-      src += rs.y() * my_image->bytesPerLine() + rs.x() * 2;
+      src += rs.y() * backBuffer->bytesPerLine() + rs.x() * 2;
 
       int is_lim = rs.y() + rs.height();
       int dst_offset = jd * 720 + id * 3;
-      int src_offset = rs.y() * my_image->bytesPerLine() + rs.x() * 2;
+      int src_offset = rs.y() * backBuffer->bytesPerLine() + rs.x() * 2;
 
       for (int ii = rs.y(); ii < is_lim;
-           dst_offset += 3, src_offset += my_image->bytesPerLine(), ii++) {
+           dst_offset += 3, src_offset += backBuffer->bytesPerLine(), ii++) {
         dst = dst0 + dst_offset;
         src = src0 + src_offset;
         for (int j = 0; j < rs.width(); j++) {
@@ -198,8 +195,8 @@ void SDL_QWin::flushRegion(const QRegion &region) {
         }
       }
       //printf("done\n");
-    } else if (screenRotation == SDL_QT_ROTATION_270) {
-      QRect rs = my_image->rect();
+    } else if (rotationMode==CounterClockwise) {
+      QRect rs = backBuffer->rect();
       QRect rd;
 
       int id, jd;
@@ -217,18 +214,18 @@ void SDL_QWin::flushRegion(const QRegion &region) {
       }
 
       int ii = id, jj;
-      uchar *src0 = my_image->bits();
+      uchar *src0 = backBuffer->bits();
       uchar *dst0 = vmem;
       uchar *dst, *src;
 
-      src += rs.y() * my_image->bytesPerLine() + rs.x() * 2;
+      src += rs.y() * backBuffer->bytesPerLine() + rs.x() * 2;
 
       int is_lim = rs.y() + rs.height();
       int dst_offset = jd * 720 + id * 3;
-      int src_offset = rs.y() * my_image->bytesPerLine() + rs.x() * 2;
+      int src_offset = rs.y() * backBuffer->bytesPerLine() + rs.x() * 2;
 
       for (int ii = rs.y(); ii < is_lim;
-           dst_offset -= 3, src_offset += my_image->bytesPerLine(), ii++) {
+           dst_offset -= 3, src_offset += backBuffer->bytesPerLine(), ii++) {
         dst = dst0 + dst_offset;
         src = src0 + src_offset;
         for (int j = 0; j < rs.width(); j++) {
@@ -267,7 +264,7 @@ void SDL_QWin::flushRegion(const QRegion &region) {
     }
   }
 
-  painter->endPainting(realRegion);
+  painter->endPainting(toScreen.map(region));
 }
 
 // This paints the current buffer to the screen, when desired.
@@ -276,4 +273,47 @@ void SDL_QWin::paintEvent(QPaintEvent *ev) {
     flushRegion(toSDL.map(QRegion(ev->rect())));
 }
 
+void SDL_QWin::keyEvent(bool pressed, QKeyEvent *e) {
+  static int arrowCodes[4][3] = { // arrow keys remapped according to screen rotation
+    {SDLK_LEFT, SDLK_UP, SDLK_DOWN}, //   Left
+    {SDLK_RIGHT, SDLK_DOWN, SDLK_UP}, //  Right
+    {SDLK_UP, SDLK_RIGHT, SDLK_LEFT}, //  Up
+    {SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT} // Down
+  };
 
+  SDL_keysym keysym;
+  int scancode;
+
+  switch (e->key()) {
+    case Qt::Key_Left:
+      scancode = arrowCodes[0][rotationMode];
+      break;
+    case Qt::Key_Right:
+      scancode = arrowCodes[1][rotationMode];
+      break;
+    case Qt::Key_Up:
+      scancode = arrowCodes[2][rotationMode];
+      break;
+    case Qt::Key_Down:
+      scancode = arrowCodes[3][rotationMode];
+      break;
+    case Qt::Key_Return: // for debugging
+    case Qt::Key_Select:
+      scancode = SDLK_RETURN;
+      break;
+
+    // TODO: Add more keys here
+
+    default:
+      return; // Ignore this key
+  }
+
+  keysym.sym = static_cast<SDLKey>(scancode);
+  keysym.scancode = scancode;
+  keysym.unicode = 0;
+  if (pressed)
+    SDL_PrivateKeyboard(SDL_PRESSED, &keysym);
+  else
+    SDL_PrivateKeyboard(SDL_RELEASED, &keysym);
+
+}

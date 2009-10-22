@@ -40,9 +40,9 @@ class SDL_QWin : public QWidget {
 public:
   enum Rotation
   {
-    NoRotation,
-    Clockwise,
-    CounterClockwise
+    NoRotation = 0,
+    Clockwise = 1,
+    CounterClockwise = 2
   };
 
   SDL_QWin(QWidget *parent = 0, Qt::WindowFlags f = 0);
@@ -72,7 +72,10 @@ protected:
   void mousePressEvent(QMouseEvent *e);
   void mouseReleaseEvent(QMouseEvent *e);
   void paintEvent(QPaintEvent *ev);
+  void keyPressEvent(QKeyEvent *e) { keyEvent(true, e); }
+  void keyReleaseEvent(QKeyEvent *e) { keyEvent(false, e); }
 private:
+  void keyEvent(bool pressed, QKeyEvent *e);
   void init();
   void suspend();
   void resume();
