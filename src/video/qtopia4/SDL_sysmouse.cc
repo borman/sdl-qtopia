@@ -46,7 +46,7 @@ extern "C" {
   }
 
   void QT_WarpWMCursor(_THIS, Uint16 x, Uint16 y) {
-    SDL_Win->setMousePos(QPoint(x, y));
+    //SDL_Win->setMousePos(QPoint(x, y));
     SDL_PrivateMouseMotion(0, 0, x, y);
   }
 

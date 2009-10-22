@@ -146,23 +146,6 @@ extern "C" {
     QT_Available, QT_CreateDevice
   };
 
-  /* Function to sort the display_list */
-  static int CompareModes(const void *A, const void *B) {
-#if 0
-    const display_mode *a = (display_mode *)A;
-    const display_mode *b = (display_mode *)B;
-
-    if ( a->space == b->space ) {
-      return((b->virtual_width*b->virtual_height)-
-             (a->virtual_width*a->virtual_height));
-    } else {
-      return(ColorSpaceToBitsPerPixel(b->space)-
-             ColorSpaceToBitsPerPixel(a->space));
-    }
-#endif
-    return 0;
-  }
-
   /* Yes, this isn't the fastest it could be, but it works nicely */
   static int QT_AddMode(_THIS, int index, unsigned int w, unsigned int h) {
     SDL_Rect *mode;
@@ -210,12 +193,10 @@ extern "C" {
     return(0);
   }
 
-  extern void SDL_HideSplash();
   int QT_VideoInit(_THIS, SDL_PixelFormat *vformat) {
-    SDL_HideSplash();
     /* Initialize the EzX Application  */
     /* Determine the screen depth */
-    vformat->BitsPerPixel = 16; //QPixmap::defaultDepth();
+    vformat->BitsPerPixel = 16; 
 
     // For now we hardcode the current depth because anything else
     // might as well be emulated by SDL rather than by EzX.
@@ -235,7 +216,7 @@ extern "C" {
     QtopiaApplication::instance()->setMainWidget(SDL_Win);
     SDL_Win->setWindowTitle(QLatin1String("_allow_on_top_"));
     SDL_Win->showFullScreen();
-    //SDL_Win->hide();
+    SDL_Win->setWindowTitle(QLatin1String("SDL"));
 
     /* Fill in some window manager capabilities */
     _this->info.wm_available = 0;
@@ -325,6 +306,7 @@ extern "C" {
     QSize desktop_size(240, 320);// = qApp->desktop()->size();
 
     current->flags = 0; //SDL_FULLSCREEN; // We always run fullscreen.
+    SDL_QWin::Rotation rotation = SDL_QWin::NoRotation;
 
     if (width <= desktop_size.width()
         && height <= desktop_size.height()) {
@@ -336,7 +318,7 @@ extern "C" {
       printf("landscape mode\n");
       char * envString = SDL_getenv(SDL_QT_ROTATION_ENV_NAME);
       int envValue = envString ? atoi(envString) : 0;
-      screenRotation = envValue ? SDL_QT_ROTATION_270 : SDL_QT_ROTATION_90;
+      rotation = envValue ? SDL_QWin::CounterClockwise : SDL_QWin::Clockwise;
       current->h = desktop_size.width();
       current->w = desktop_size.height();
     } else {
@@ -347,7 +329,7 @@ extern "C" {
       return(NULL);
     }
     /* Create the QImage framebuffer */
-    qimage = new QImage(current->w, current->h, QImage::Format_RGB16  );
+    qimage = new QImage(current->w, current->h, QImage::Format_RGB16);
     if (qimage->isNull()) {
       SDL_SetError("Couldn't create screen bitmap");
       delete qimage;
@@ -355,7 +337,7 @@ extern "C" {
     }
     current->pitch = qimage->bytesPerLine();
     current->pixels = (void *)qimage->bits();
-    SDL_Win->setImage(qimage);
+    SDL_Win->setBackBuffer(rotation, qimage);
     _this->UpdateRects = QT_NormalUpdate;
     /* We're done */
     return(current);
@@ -365,7 +347,7 @@ extern "C" {
   void QT_UpdateMouse(_THIS) {
     QPoint point(-1, -1);
     if ( SDL_Win->isActiveWindow() ) {
-      point = SDL_Win->mousePos();
+      point = SDL_Win->getMousePosition();
     }
 
     if ( (point.x() >= 0) && (point.x() < SDL_VideoSurface->w) &&
@@ -386,6 +368,7 @@ extern "C" {
     return;
   }
   static int QT_LockHWSurface(_THIS, SDL_Surface *surface) {
+    SDL_Win->repaint();
     return(0);
   }
   static void QT_UnlockHWSurface(_THIS, SDL_Surface *surface) {
@@ -404,19 +387,9 @@ extern "C" {
   }
 
   void QT_VideoQuit(_THIS) {
-    // This is dumb, but if I free this, the app doesn't exit correctly.
-    // Of course, this will leak memory if init video is done more than once.
-    // Sucks but such is life.
-
-    //    -- David Hedbor
-    //    delete SDL_Win;
-    //    SDL_Win = 0;
     _this->screen->pixels = NULL;
-    if (SDL_Win) {
-      QT_GrabInput(_this, SDL_GRAB_OFF);
-      delete SDL_Win;
-      SDL_Win = 0;
-    }
+    delete SDL_Win;
+    SDL_Win = 0;
   }
 
   static int QT_IconifyWindow(_THIS) {
@@ -425,14 +398,6 @@ extern "C" {
   }
 
   static SDL_GrabMode QT_GrabInput(_THIS, SDL_GrabMode mode) {
-    /*if(mode == SDL_GRAB_OFF) {
-      qApp->mainWidget()->grabKeyboard();
-      qApp->processEvents();
-      qApp->mainWidget()->releaseKeyboard();
-      } else {
-      qApp->mainWidget()->grabKeyboard();
-      }
-      qApp->processEvents();*/
     return mode;
   }
 
