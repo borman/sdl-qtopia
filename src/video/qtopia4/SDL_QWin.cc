@@ -278,7 +278,7 @@ void SDL_QWin::keyEvent(bool pressed, QKeyEvent *e) {
     {SDLK_LEFT, SDLK_UP, SDLK_DOWN}, //   Left
     {SDLK_RIGHT, SDLK_DOWN, SDLK_UP}, //  Right
     {SDLK_UP, SDLK_RIGHT, SDLK_LEFT}, //  Up
-    {SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT} // Down
+    {SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT}, // Down
   };
 
   SDL_keysym keysym;
@@ -301,7 +301,24 @@ void SDL_QWin::keyEvent(bool pressed, QKeyEvent *e) {
     case Qt::Key_Select:
       scancode = SDLK_RETURN;
       break;
-
+    case Qt::Key_Hangup:
+      scancode = SDLK_ESCAPE;
+      break;
+    case Qt::Key_Call:
+      scancode = SDLK_PAUSE;
+      break;
+    case Qt::Key_F30:
+      scancode = SDLK_TAB;
+      break;
+    case Qt::Key_F31:
+      scancode = SDLK_SPACE;
+      break;
+    case Qt::Key_F4:
+      scancode = SDLK_LCTRL;
+      break;
+    case Qt::Key_F7:
+      scancode = SDLK_LALT;
+      break;
     // TODO: Add more keys here
 
     default:
