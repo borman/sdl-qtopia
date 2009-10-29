@@ -7,7 +7,8 @@
 #undef main
 #endif
 #ifdef QWS
-#include <qtopiaapplication.h>
+#include <Qtopia>
+#include <QtopiaApplication>
 #include <stdlib.h>
 #endif
 
@@ -17,9 +18,21 @@ int main(int argc, char *argv[])
 {
 #ifdef QWS
   QtopiaApplication a( argc, argv );
-//    QWidget dummy;
-//  a.setMainWidget(&dummy);
-//  dummy.show();
+  
+  QString prefix = Qtopia::sandboxDir();
+  if (prefix.isEmpty()) // sandbox path must be respected everywhere it works
+  {
+    // TODO: This duplicates Qtopia::sandboxDir(). Remove this when it works.
+    qWarning("Qtopia::sandboxDir() broken");
+    QString appPath = QCoreApplication::applicationFilePath(); 
+    if ( appPath.startsWith( Qtopia::packagePath() ) ) 
+      prefix = appPath.left( Qtopia::packagePath().length() + 32 ) + QLatin1String("/"); //32 is the md5sum length
+    else
+      prefix = Qtopia::qtopiaDir(); // Finally, fall back to Qtopia prefix
+  }
+
+  qDebug("APP_PREFIX := %s", prefix.toLocal8Bit().constData());
+  setenv("APP_PREFIX", prefix.toLocal8Bit().constData(), TRUE);
 #endif
   int r = SDL_main(argc, argv);
   return r;
