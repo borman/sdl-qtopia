@@ -297,6 +297,14 @@ void SDL_QWin::keyEvent(bool pressed, QKeyEvent *e) {
     case Qt::Key_Down:
       scancode = arrowCodes[3][rotationMode];
       break;
+
+    case Qt::Key_VolumeUp:
+      scancode = SDLK_PLUS;
+      break;
+    case Qt::Key_VolumeDown:
+      scancode = SDLK_MINUS;
+      break;
+
     case Qt::Key_Return: // for debugging
     case Qt::Key_Select:
       scancode = SDLK_RETURN;
@@ -305,19 +313,14 @@ void SDL_QWin::keyEvent(bool pressed, QKeyEvent *e) {
       scancode = SDLK_ESCAPE;
       break;
     case Qt::Key_Call:
-      scancode = SDLK_PAUSE;
-      break;
-    case Qt::Key_F30:
-      scancode = SDLK_TAB;
-      break;
-    case Qt::Key_F31:
       scancode = SDLK_SPACE;
       break;
-    case Qt::Key_F4:
-      scancode = SDLK_LCTRL;
+
+    case Qt::Key_F4: // Camera
+      scancode = SDLK_PAUSE;
       break;
-    case Qt::Key_F7:
-      scancode = SDLK_LALT;
+    case Qt::Key_F7: // VR
+      scancode = SDLK_PAUSE;
       break;
     // TODO: Add more keys here
 
